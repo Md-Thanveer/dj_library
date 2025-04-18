@@ -1,16 +1,15 @@
 from django.db import models
+
 from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
 
 from backend.manager import CustomerUserManager
-
 
 # Create your models here.
 
 class Gender(models.TextChoices):
     MALE = 'M', _('Male')
     FEMALE = 'F', _('Female')
-
 
 class GenderedImageField(models.ImageField):
 
@@ -41,14 +40,13 @@ class GenderedImageField(models.ImageField):
         setattr(model_instance, f"{self.attname}_gender_cache", model_instance.gender)
         return value
 
-
 class CustomUser(AbstractUser):
     username = None
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
-    email = models.EmailField(_('email address'), unique=True)
-    gender = models.CharField(max_length=1, choices=Gender.choices, default=Gender.MALE)
-    image = GenderedImageField(upload_to='profile/', blank=True)
+    email = models.EmailField(_('email address'),unique=True)
+    gender = models.CharField(max_length=1,choices=Gender.choices,default=Gender.MALE)
+    image = GenderedImageField(upload_to='profile/',blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name', 'gender']
@@ -57,13 +55,87 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return self.email
 
-# Create your models here.
-class Genre(models.Model):
+class AuthorUser(CustomUser):
+    class Meta:
+        proxy = True
+        verbose_name = 'Author'
+        verbose_name_plural = 'Authors'
+
+
+class MemberUser(CustomUser):
+    class Meta:
+        proxy = True
+        verbose_name = 'Member'
+        verbose_name_plural = 'Members'
+
+
+class AdminUser(CustomUser):
+    class Meta:
+        proxy = True
+        verbose_name = 'Admin'
+        verbose_name_plural = 'Admins'
+
+
+class Category(models.Model):
     id = models.BigAutoField(primary_key=True)
+
     name = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
 
     class Meta:
-        db_table= 'Genre'
+        db_table = "category"
+
+class Book(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
+    title = models.CharField(max_length=255)
+
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+
+    publication_date = models.DateField()
+
+    copies_owned = models.IntegerField()
+
+    authors = models.ManyToManyField('CustomUser', through='BookAuthor')
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        db_table = "book"
+
+class BookAuthor(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'book_author'
+        unique_together = ('book', 'author')  # prevents duplicate author entries for a book
+
+    def __str__(self):
+        return f"{self.author} - {self.book}"
+
+
+class Loan(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    member = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    loan_date = models.DateField()
+    returned_date = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.member.email} - {self.book.title}"
+
+    class Meta:
+        db_table = 'loan'
+
+class Fine(models.Model):
+    member = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    loan = models.ForeignKey(Loan, on_delete=models.CASCADE)
+    fine_date = models.DateField()
+    fine_amount = models.DecimalField(max_digits=8, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.member.email} - ₹{self.fine_amount} on {self.fine_date}"

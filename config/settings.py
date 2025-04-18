@@ -26,7 +26,8 @@ SECRET_KEY = 'django-insecure-v-dy*&i!m)nq=@oddz1f*skeuuk27i-_#6nw+11(q6d8)c!of7
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'dj-library-6ebn.onrender.com'
+    'dj-library-6ebn.onrender.com',
+    '127.0.0.1'
 ]
 
 
@@ -124,5 +125,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = 'media/'
+
+MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 
 AUTH_USER_MODEL = 'backend.CustomUser'
